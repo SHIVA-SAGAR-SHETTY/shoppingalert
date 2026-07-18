@@ -1,33 +1,19 @@
 /* ============================================================
-   PriceDrop — frontend dashboard + owner admin mode
+   PriceDrop — frontend (talks to the /api backend on Vercel)
    ============================================================ */
 
-const CONFIG = {
-  owner: "SHIVA-SAGAR-SHETTY",
-  repo: "shoppingalert",
-  branch: "main",
-  watchlistPath: "watchlist.json",
-  pricesPath: "data/prices.json",
-};
-
-const TOKEN_KEY = "pricedrop_gh_token";
+const API = ""; // same-origin on Vercel: calls go to /api/*
 const CURRENCY = "₹";
 const STALE_HOURS = 6;
 
 const $ = (sel) => document.querySelector(sel);
 const charts = [];
 
-/* ---------- token helpers (browser-only) ---------- */
-const getToken = () => localStorage.getItem(TOKEN_KEY) || "";
-const setToken = (t) => localStorage.setItem(TOKEN_KEY, t.trim());
-const clearToken = () => localStorage.removeItem(TOKEN_KEY);
-
 /* ---------- utils ---------- */
 function fmtPrice(v, cur) {
   if (v == null || isNaN(v)) return "—";
   return (cur || CURRENCY) + Number(v).toLocaleString("en-IN");
 }
-
 function timeAgo(iso) {
   if (!iso) return "never";
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -36,54 +22,48 @@ function timeAgo(iso) {
   if (s < 86400) return Math.floor(s / 3600) + "h ago";
   return Math.floor(s / 86400) + "d ago";
 }
-
 function hoursSince(iso) {
-  if (!iso) return Infinity;
-  return (Date.now() - new Date(iso).getTime()) / 3.6e6;
+  return iso ? (Date.now() - new Date(iso).getTime()) / 3.6e6 : Infinity;
 }
-
-function detectSite(url) {
-  try {
-    const h = new URL(url).hostname.toLowerCase();
-    if (h.includes("amazon.")) return "amazon";
-    if (h.includes("flipkart.")) return "flipkart";
-  } catch (_) {}
-  return null;
+function looksLikeUrl(s) {
+  return /^https?:\/\//i.test(s.trim()) || /(amazon\.|flipkart\.)/i.test(s);
 }
-
-// Stable id from URL (matches the intent of the Python hash: first 12 hex of sha1-ish).
-async function makeId(url) {
-  const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(url));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
-
 function toast(msg, kind = "") {
   const el = $("#toast");
   el.textContent = msg;
   el.className = "toast show " + kind;
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => (el.className = "toast hidden"), 3200);
+  toast._t = setTimeout(() => (el.className = "toast hidden"), 3600);
 }
 
-/* ---------- data loading ---------- */
+async function api(path, opts) {
+  const res = await fetch(API + path, {
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
+
 async function loadJSON(path) {
-  // cache-bust so freshly committed JSON shows up without a hard refresh
   const res = await fetch(`${path}?t=${Date.now()}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`${path}: ${res.status}`);
   return res.json();
 }
 
+/* ---------- render ---------- */
 async function render() {
-  let watchlist = [];
-  let prices = {};
+  let watchlist = [], prices = {};
   try {
     [watchlist, prices] = await Promise.all([
-      loadJSON(CONFIG.watchlistPath),
-      loadJSON(CONFIG.pricesPath).catch(() => ({})),
+      loadJSON("watchlist.json"),
+      loadJSON("data/prices.json").catch(() => ({})),
     ]);
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
 
   $("#loading").classList.add("hidden");
   const grid = $("#grid");
@@ -100,52 +80,59 @@ async function render() {
   $("#empty").classList.add("hidden");
   grid.classList.remove("hidden");
 
-  let dropCount = 0;
-  watchlist.forEach((item) => {
+  // sort: dropped/on-sale first (biggest drop % first), then the rest
+  const decorated = watchlist.map((item) => {
     const p = prices[item.id] || {};
-    if (p.onSale || (p.history && p.history.length > 1 && isDrop(p))) dropCount++;
-    grid.appendChild(buildCard(item, p));
+    return { item, p, drop: dropInfo(p) };
+  });
+  decorated.sort((a, b) => {
+    const ad = a.drop.isDrop || a.p.onSale, bd = b.drop.isDrop || b.p.onSale;
+    if (ad !== bd) return ad ? -1 : 1;
+    return (b.drop.pct || 0) - (a.drop.pct || 0);
+  });
+
+  let dropCount = 0;
+  decorated.forEach(({ item, p, drop }) => {
+    if (drop.isDrop || p.onSale) dropCount++;
+    grid.appendChild(buildCard(item, p, drop));
   });
 
   updateStats(watchlist.length, dropCount, prices);
   animateIn();
 }
 
-function isDrop(p) {
+function dropInfo(p) {
   const h = p.history || [];
-  if (h.length < 2) return false;
-  return h[h.length - 1].price < h[h.length - 2].price;
+  if (h.length < 2) return { isDrop: false, pct: 0, diff: 0 };
+  const now = h[h.length - 1].price, prev = h[h.length - 2].price;
+  const diff = now - prev;
+  return { isDrop: diff < 0, pct: prev ? Math.round((-diff / prev) * 100) : 0, diff };
 }
 
-function buildCard(item, p) {
+function buildCard(item, p, drop) {
   const card = document.createElement("article");
   card.className = "card";
-  const dropped = p.onSale || isDrop(p);
-  if (dropped) card.classList.add("dropped");
+  const highlighted = p.onSale || drop.isDrop;
+  if (highlighted) card.classList.add("dropped");
 
-  const site = item.site || detectSite(item.url) || "amazon";
+  const site = item.site || "flipkart";
   const title = p.title || item.title || item.url;
   const cur = p.currency || CURRENCY;
+  const pending = p.currentPrice == null;
 
-  // delta vs previous recorded price
   let deltaHtml = '<span class="delta flat">—</span>';
-  const h = p.history || [];
-  if (h.length >= 2) {
-    const now = h[h.length - 1].price, prev = h[h.length - 2].price;
-    const diff = now - prev;
-    const pct = prev ? Math.round((diff / prev) * 100) : 0;
-    if (diff < 0) deltaHtml = `<span class="delta down">▼ ${fmtPrice(-diff, cur)} (${pct}%)</span>`;
-    else if (diff > 0) deltaHtml = `<span class="delta up">▲ ${fmtPrice(diff, cur)} (+${pct}%)</span>`;
-  }
+  if (drop.isDrop) deltaHtml = `<span class="delta down">▼ ${fmtPrice(-drop.diff, cur)} (${drop.pct}%)</span>`;
+  else if (drop.diff > 0) deltaHtml = `<span class="delta up">▲ ${fmtPrice(drop.diff, cur)}</span>`;
 
   const imgHtml = p.image
     ? `<img class="card-img" src="${p.image}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'card-img placeholder',textContent:'📦'}))" />`
     : `<div class="card-img placeholder">📦</div>`;
 
-  const stale = hoursSince(p.lastChecked) > STALE_HOURS;
-  const targetNote = item.targetPrice
-    ? `<p class="target-note">🎯 Alert target: ${fmtPrice(item.targetPrice, cur)}</p>`
-    : "";
+  const stale = !pending && hoursSince(p.lastChecked) > STALE_HOURS;
+  const targetNote = item.targetPrice ? `<p class="target-note">🎯 Alert target: ${fmtPrice(item.targetPrice, cur)}</p>` : "";
+  const priceHtml = pending
+    ? `<span class="price pending">Fetching price…</span>`
+    : `<span class="price">${fmtPrice(p.currentPrice, cur)}</span> ${deltaHtml}`;
 
   card.innerHTML = `
     ${p.onSale ? '<span class="sale-tag">SALE</span>' : ""}
@@ -156,23 +143,20 @@ function buildCard(item, p) {
         <h3 class="card-title">${escapeHtml(title)}</h3>
       </div>
     </div>
-    <div class="price-row">
-      <span class="price">${fmtPrice(p.currentPrice, cur)}</span>
-      ${deltaHtml}
-    </div>
+    <div class="price-row">${priceHtml}</div>
     ${targetNote}
     <div class="chart-wrap"><canvas></canvas></div>
     <div class="card-foot">
       <a href="${item.url}" target="_blank" rel="noopener">View product ↗</a>
       <span>
         ${stale ? '<span class="stale" title="No successful check recently">⚠ stale</span> ' : ""}
-        <span class="muted">${timeAgo(p.lastChecked)}</span>
+        <span class="muted">${pending ? "just added" : timeAgo(p.lastChecked)}</span>
         <button class="icon-btn" title="Stop tracking" data-del="${item.id}">🗑</button>
       </span>
     </div>`;
 
   const canvas = card.querySelector("canvas");
-  if (h.length > 1) drawSpark(canvas, h, dropped);
+  if ((p.history || []).length > 1) drawSpark(canvas, p.history, highlighted);
 
   card.querySelector("[data-del]").addEventListener("click", () => removeProduct(item.id, title));
   return card;
@@ -180,7 +164,7 @@ function buildCard(item, p) {
 
 function drawSpark(canvas, history, dropped) {
   const data = history.slice(-30);
-  const chart = new Chart(canvas, {
+  charts.push(new Chart(canvas, {
     type: "line",
     data: {
       labels: data.map((d) => d.t),
@@ -208,12 +192,7 @@ function drawSpark(canvas, history, dropped) {
       scales: { x: { display: false }, y: { display: false } },
       animation: { duration: 600 },
     },
-  });
-  charts.push(chart);
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }));
 }
 
 function updateStats(tracked, drops, prices) {
@@ -222,154 +201,100 @@ function updateStats(tracked, drops, prices) {
   const times = Object.values(prices).map((p) => p.lastChecked).filter(Boolean).sort();
   $("#statUpdated").textContent = times.length ? timeAgo(times[times.length - 1]) : "—";
 }
-
 function countTo(el, target) {
-  const start = 0, dur = 900, t0 = performance.now();
-  function step(now) {
+  const t0 = performance.now(), dur = 800;
+  (function step(now) {
     const k = Math.min((now - t0) / dur, 1);
-    el.textContent = Math.round(start + (target - start) * (1 - Math.pow(1 - k, 3)));
+    el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
     if (k < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
+  })(performance.now());
 }
-
-/* ---------- GSAP entrance ---------- */
 function animateIn() {
   if (!window.gsap) return;
-  gsap.from(".card", {
-    opacity: 0, y: 30, duration: 0.6, stagger: 0.07, ease: "power3.out", clearProps: "all",
-  });
-  gsap.from(".stat", { opacity: 0, y: 16, duration: 0.5, stagger: 0.08, ease: "power2.out", clearProps: "all" });
+  gsap.from(".card", { opacity: 0, y: 28, duration: 0.55, stagger: 0.06, ease: "power3.out", clearProps: "all" });
+  gsap.from(".stat", { opacity: 0, y: 14, duration: 0.45, stagger: 0.07, ease: "power2.out", clearProps: "all" });
 }
 
 /* ============================================================
-   Admin: add / remove via GitHub Contents API
+   Add / search / delete (via backend)
    ============================================================ */
-const GH_API = "https://api.github.com";
-
-async function ghGetFile(path) {
-  const res = await fetch(`${GH_API}/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${path}?ref=${CONFIG.branch}`, {
-    headers: ghHeaders(),
-  });
-  if (!res.ok) throw new Error(`GitHub read failed (${res.status})`);
-  const data = await res.json();
-  return { sha: data.sha, content: JSON.parse(decodeURIComponent(escape(atob(data.content)))) };
-}
-
-async function ghPutFile(path, obj, sha, message) {
-  const body = {
-    message,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(obj, null, 2) + "\n"))),
-    sha,
-    branch: CONFIG.branch,
-  };
-  const res = await fetch(`${GH_API}/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${path}`, {
-    method: "PUT", headers: ghHeaders(), body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `GitHub write failed (${res.status})`);
-  }
-  return res.json();
-}
-
-function ghHeaders() {
-  return {
-    Authorization: `Bearer ${getToken()}`,
-    Accept: "application/vnd.github+json",
-    "Content-Type": "application/json",
-  };
-}
-
-async function addProduct() {
-  const url = $("#urlInput").value.trim();
+async function submitAdd() {
+  const val = $("#addInput").value.trim();
   const target = $("#targetInput").value.trim();
-  const errEl = $("#addError");
-  errEl.classList.add("hidden");
-
-  const site = detectSite(url);
-  if (!site) {
-    errEl.textContent = "Please paste a valid Amazon or Flipkart product URL.";
-    errEl.classList.remove("hidden");
-    return;
-  }
-  if (!getToken()) { closeModals(); openSettings(); return; }
-
-  const btn = $("#addSubmit");
+  if (!val) return;
+  const btn = $("#addBtn");
   btn.disabled = true; btn.textContent = "Adding…";
   try {
-    const id = await makeId(url);
-    const { sha, content } = await ghGetFile(CONFIG.watchlistPath);
-    if (content.some((x) => x.id === id)) throw new Error("That product is already being tracked.");
-    content.push({
-      id, url, site,
-      title: "",
-      targetPrice: target ? Number(target) : null,
-      addedAt: new Date().toISOString(),
-    });
-    await ghPutFile(CONFIG.watchlistPath, content, sha, `Add product: ${url}`);
-    toast("Product added — first price check runs within the hour.", "ok");
-    closeModals();
-    $("#urlInput").value = ""; $("#targetInput").value = "";
-    setTimeout(render, 1200);
+    if (looksLikeUrl(val)) {
+      const r = await api("/api/add", { method: "POST", body: JSON.stringify({ url: val, targetPrice: target || null }) });
+      toast("Added — fetching latest price…", "ok");
+    } else {
+      const r = await api("/api/search", { method: "POST", body: JSON.stringify({ query: val, count: 3 }) });
+      toast(`Added ${r.added} top result${r.added > 1 ? "s" : ""} for “${val}”.`, "ok");
+    }
+    $("#addInput").value = ""; $("#targetInput").value = "";
+    setTimeout(render, 1400);
   } catch (e) {
-    errEl.textContent = e.message;
-    errEl.classList.remove("hidden");
+    toast(e.message, "err");
   } finally {
-    btn.disabled = false; btn.textContent = "Add & track";
+    btn.disabled = false; btn.textContent = "Add";
   }
 }
 
 async function removeProduct(id, title) {
-  if (!getToken()) { openSettings(); return; }
   if (!confirm(`Stop tracking "${title}"?`)) return;
   try {
-    const wl = await ghGetFile(CONFIG.watchlistPath);
-    const next = wl.content.filter((x) => x.id !== id);
-    await ghPutFile(CONFIG.watchlistPath, next, wl.sha, `Remove product ${id}`);
-    // also prune its price record (best-effort)
-    try {
-      const pr = await ghGetFile(CONFIG.pricesPath);
-      if (pr.content[id]) {
-        delete pr.content[id];
-        await ghPutFile(CONFIG.pricesPath, pr.content, pr.sha, `Prune prices for ${id}`);
-      }
-    } catch (_) {}
+    await api("/api/delete", { method: "POST", body: JSON.stringify({ id }) });
     toast("Removed from watchlist.", "ok");
-    setTimeout(render, 1000);
+    setTimeout(render, 900);
+  } catch (e) { toast(e.message, "err"); }
+}
+
+/* ---------- recipients ---------- */
+async function openRecipients() {
+  $("#recipientsModal").classList.remove("hidden");
+  const box = $("#currentRecipients");
+  box.innerHTML = '<span class="muted">Loading…</span>';
+  try {
+    const { emails } = await api("/api/recipients", { method: "GET" });
+    box.innerHTML = emails.length
+      ? "Currently alerting: " + emails.map((e) => `<span class="chip">${escapeHtml(e)}</span>`).join(" ")
+      : '<span class="muted">No recipients yet — add some below.</span>';
   } catch (e) {
-    toast(e.message, "err");
+    box.innerHTML = `<span class="muted">Couldn’t load recipients (${escapeHtml(e.message)}).</span>`;
+  }
+}
+async function saveRecipients() {
+  const raw = $("#emailsInput").value;
+  const errEl = $("#recipError");
+  errEl.classList.add("hidden");
+  const btn = $("#saveRecipients");
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    const { emails } = await api("/api/recipients", { method: "POST", body: JSON.stringify({ emails: raw }) });
+    toast(`Saved ${emails.length} recipient${emails.length === 1 ? "" : "s"}.`, "ok");
+    $("#emailsInput").value = "";
+    openRecipients();
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false; btn.textContent = "Save recipients";
   }
 }
 
-/* ---------- modal wiring ---------- */
-function openAdd() { $("#addModal").classList.remove("hidden"); $("#urlInput").focus(); }
-function openSettings() {
-  $("#tokenInput").value = getToken();
-  $("#settingsModal").classList.remove("hidden");
-}
+/* ---------- wiring ---------- */
 function closeModals() {
   document.querySelectorAll(".modal-backdrop").forEach((m) => m.classList.add("hidden"));
 }
-
 function wire() {
-  $("#addBtn").addEventListener("click", openAdd);
-  $("#settingsBtn").addEventListener("click", openSettings);
-  $("#addSubmit").addEventListener("click", addProduct);
-  $("#urlInput").addEventListener("keydown", (e) => { if (e.key === "Enter") addProduct(); });
-
-  $("#saveToken").addEventListener("click", () => {
-    const t = $("#tokenInput").value.trim();
-    if (!t) return toast("Paste a token first.", "err");
-    setToken(t);
-    toast("Token saved to this browser.", "ok");
-    closeModals();
+  $("#addBtn").addEventListener("click", submitAdd);
+  $("#addInput").addEventListener("keydown", (e) => { if (e.key === "Enter") submitAdd(); });
+  $("#addInput").addEventListener("input", () => {
+    const v = $("#addInput").value.trim();
+    $("#addBtn").textContent = v && !looksLikeUrl(v) ? "Search & add top 3" : "Add";
   });
-  $("#clearToken").addEventListener("click", () => {
-    clearToken(); $("#tokenInput").value = "";
-    toast("Token removed from this browser.", "ok");
-  });
-
+  $("#recipientsBtn").addEventListener("click", openRecipients);
+  $("#saveRecipients").addEventListener("click", saveRecipients);
   document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModals));
   document.querySelectorAll(".modal-backdrop").forEach((m) =>
     m.addEventListener("click", (e) => { if (e.target === m) closeModals(); }));

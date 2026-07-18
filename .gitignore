@@ -3,6 +3,10 @@
 .env.txt
 *.env
 
+# Node / Vercel
+node_modules/
+.vercel/
+
 # Python
 __pycache__/
 *.pyc

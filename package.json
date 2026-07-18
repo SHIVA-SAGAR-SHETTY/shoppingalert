@@ -1,0 +1,14 @@
+{
+  "name": "pricedrop-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Serverless API for the PriceDrop tracker (add / search / recipients).",
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "libsodium-wrappers": "^0.7.15"
+  }
+}
