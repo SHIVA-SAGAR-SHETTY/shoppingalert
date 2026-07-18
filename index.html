@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceDrop — Amazon &amp; Flipkart price alerts</title>
+  <meta name="description" content="Track Amazon & Flipkart products and get emailed the moment the price drops." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔻</text></svg>" />
+</head>
+<body>
+  <!-- animated aurora background -->
+  <div class="aurora" aria-hidden="true">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+  </div>
+
+  <header class="site-header">
+    <div class="brand">
+      <span class="logo">🔻</span>
+      <div>
+        <h1>PriceDrop</h1>
+        <p class="tagline">Amazon &amp; Flipkart price-drop alerts</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="addBtn" class="btn btn-primary">＋ Add product</button>
+      <button id="settingsBtn" class="btn btn-ghost" title="Admin settings">⚙︎</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- stat strip -->
+    <section class="stats" id="stats">
+      <div class="stat"><span class="stat-num" data-count="0" id="statTracked">0</span><span class="stat-label">Tracked</span></div>
+      <div class="stat"><span class="stat-num" data-count="0" id="statDrops">0</span><span class="stat-label">On sale / dropped</span></div>
+      <div class="stat"><span class="stat-num" id="statUpdated">—</span><span class="stat-label">Last checked</span></div>
+    </section>
+
+    <!-- loading / empty / grid states -->
+    <section id="loading" class="state-msg">
+      <div class="spinner"></div><p>Loading your watchlist…</p>
+    </section>
+
+    <section id="empty" class="state-msg hidden">
+      <div class="empty-art">🛒</div>
+      <h2>Nothing tracked yet</h2>
+      <p>Hit <strong>＋ Add product</strong> and paste an Amazon or Flipkart link to start watching its price.</p>
+      <button class="btn btn-primary" onclick="document.getElementById('addBtn').click()">＋ Add your first product</button>
+    </section>
+
+    <section id="grid" class="grid hidden" aria-live="polite"></section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Checked automatically every hour by GitHub Actions · Emails sent on price drops &amp; sales.</p>
+    <p class="muted">Best-effort scraping — Amazon/Flipkart occasionally block automated checks.</p>
+  </footer>
+
+  <!-- Add product modal -->
+  <div class="modal-backdrop hidden" id="addModal">
+    <div class="modal">
+      <button class="modal-close" data-close>✕</button>
+      <h2>Add a product</h2>
+      <p class="modal-sub">Paste a product link from Amazon or Flipkart.</p>
+      <label class="field">
+        <span>Product URL</span>
+        <input type="url" id="urlInput" placeholder="https://www.amazon.in/… or https://www.flipkart.com/…" />
+      </label>
+      <label class="field">
+        <span>Target price <em>(optional — alert only below this)</em></span>
+        <input type="number" id="targetInput" placeholder="e.g. 1999" min="0" />
+      </label>
+      <div class="modal-error hidden" id="addError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close>Cancel</button>
+        <button class="btn btn-primary" id="addSubmit">Add &amp; track</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings / token modal -->
+  <div class="modal-backdrop hidden" id="settingsModal">
+    <div class="modal">
+      <button class="modal-close" data-close>✕</button>
+      <h2>Admin settings</h2>
+      <p class="modal-sub">
+        Adding or removing products commits to your GitHub repo, so it needs a
+        <strong>fine-grained personal access token</strong> scoped to this one repo
+        (<code>Contents: Read&nbsp;and&nbsp;write</code>). It is stored <strong>only in this browser</strong>
+        and never uploaded.
+      </p>
+      <ol class="help-list">
+        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → Fine-grained tokens</a>.</li>
+        <li>Repository access → <em>Only select repositories</em> → <code>shoppingalert</code>.</li>
+        <li>Permissions → Repository → <em>Contents</em> → <strong>Read and write</strong>.</li>
+        <li>Generate, copy, and paste it below.</li>
+      </ol>
+      <label class="field">
+        <span>GitHub token</span>
+        <input type="password" id="tokenInput" placeholder="github_pat_… (stored locally only)" />
+      </label>
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="clearToken">Remove token</button>
+        <button class="btn btn-primary" id="saveToken">Save token</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- libs (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
