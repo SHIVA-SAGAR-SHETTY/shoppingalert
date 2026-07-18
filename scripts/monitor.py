@@ -190,10 +190,9 @@ def parse_flipkart(soup):
             price = to_number(el.get_text())
             if price:
                 break
-    if price is None:
-        m = re.search(r"₹\s?([\d,]+)", soup.get_text())
-        if m:
-            price = to_number(m.group(1))
+    # NOTE: no "first ₹ on the page" fallback here — Flipkart lists many prices
+    # (size variants, EMI, bank offers); the first one is usually the cheapest
+    # variant, not the displayed price. We rely on JSON-LD offers.price instead.
     title_el = soup.select_one("span.VU-ZEz, span.B_NuCI, h1")
     img_el = soup.select_one("img._396cs4, img._53J4C-, img.DByuf4")
     txt = soup.get_text().lower()
@@ -222,15 +221,18 @@ def scrape(url: str, site: str):
         price = cur = title = image = None
         on_sale = False
 
-    # JSON-LD fallback for anything still missing
-    if price is None or not title or not image:
-        ld = parse_jsonld(soup)
-        if ld:
-            ld_price, ld_cur, ld_name, ld_img = ld
-            price = price or ld_price
-            cur = cur or ld_cur
-            title = title or ld_name
-            image = image or ld_img
+    # JSON-LD (schema.org offers.price). On Flipkart this is the reliable displayed
+    # price, so it takes PRIORITY over DOM selectors (which can match a size variant).
+    ld = parse_jsonld(soup)
+    if ld:
+        ld_price, ld_cur, ld_name, ld_img = ld
+        if site == "flipkart" and ld_price:
+            price = ld_price
+        elif price is None and ld_price:
+            price = ld_price
+        cur = cur or ld_cur
+        title = title or ld_name
+        image = image or ld_img
 
     # Open Graph fallbacks (reliable for image + title on both sites)
     if not image:

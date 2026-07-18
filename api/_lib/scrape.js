@@ -130,6 +130,15 @@ export function parseProduct(html, site) {
     image = $("img._396cs4, img._53J4C-, img.DByuf4").first().attr("src") || null;
     const low = $.root().text().toLowerCase();
     onSale = low.includes("% off");
+    // On Flipkart, JSON-LD offers.price is the reliable displayed price and must
+    // take PRIORITY over the DOM selector (which can match a cheaper size variant).
+    const ld = parseJsonLd($);
+    if (ld && ld.price != null) {
+      price = ld.price;
+      // keep the ₹ symbol (JSON-LD reports "INR", which would render as "INR11099")
+      title = title || ld.title;
+      image = image || ld.image;
+    }
   } else if (site === "amazon") {
     for (const sel of [
       "#corePriceDisplay_desktop_feature_div .a-price .a-offscreen",
