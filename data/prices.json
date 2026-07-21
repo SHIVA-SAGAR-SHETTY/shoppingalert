@@ -7,15 +7,14 @@
     "currentPrice": 11099.0,
     "currency": "₹",
     "onSale": true,
-    "lastChecked": "2026-07-21T18:06:09+00:00",
+    "lastChecked": "2026-07-21T21:52:43+00:00",
     "history": [
       {
         "t": "2026-07-18T11:10:34+00:00",
         "price": 11099.0
       }
     ],
-    "alertedAt_matches": null,
-    "lastAttempt": "2026-07-21T20:12:13+00:00"
+    "alertedAt_matches": null
   },
   "673e55f48713": {
     "title": "Asics NOVABLAST 5 ATC Outdoors For Men (Grey , 7)",
@@ -25,7 +24,7 @@
     "currentPrice": 11099.0,
     "currency": "₹",
     "onSale": true,
-    "lastChecked": "2026-07-21T20:12:43+00:00",
+    "lastChecked": "2026-07-21T21:52:46+00:00",
     "history": [
       {
         "t": "2026-07-18T11:10:38+00:00",
@@ -42,7 +41,7 @@
     "currentPrice": 11899.0,
     "currency": "₹",
     "onSale": true,
-    "lastChecked": "2026-07-21T20:12:47+00:00",
+    "lastChecked": "2026-07-21T21:52:50+00:00",
     "history": [
       {
         "t": "2026-07-18T11:14:15+00:00",
