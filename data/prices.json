@@ -31,7 +31,7 @@
       }
     ],
     "alertedAt_matches": null,
-    "lastAttempt": "2026-08-29T17:59:07+00:00"
+    "lastAttempt": "2026-08-29T20:15:12+00:00"
   },
   "673e55f48713": {
     "title": "Asics NOVABLAST 5 ATC Outdoors For Men (Grey , 7)",
@@ -41,7 +41,7 @@
     "currentPrice": 11099.0,
     "currency": "₹",
     "onSale": true,
-    "lastChecked": "2026-08-29T14:43:59+00:00",
+    "lastChecked": "2026-08-29T20:15:53+00:00",
     "history": [
       {
         "t": "2026-07-18T11:10:38+00:00",
@@ -72,8 +72,7 @@
         "price": 11099.0
       }
     ],
-    "alertedAt_matches": null,
-    "lastAttempt": "2026-08-29T18:01:17+00:00"
+    "alertedAt_matches": null
   },
   "343f603322ad": {
     "title": "Asics NOVABLAST 5 Running Shoes For Women (White , 4)",
@@ -83,7 +82,7 @@
     "currentPrice": 11899.0,
     "currency": "₹",
     "onSale": true,
-    "lastChecked": "2026-08-29T18:01:47+00:00",
+    "lastChecked": "2026-08-29T20:15:57+00:00",
     "history": [
       {
         "t": "2026-07-18T11:14:15+00:00",
