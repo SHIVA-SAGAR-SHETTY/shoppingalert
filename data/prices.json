@@ -4,10 +4,10 @@
     "image": "https://rukmini1.flixcart.com/image/1500/1500/xif0q/shoe/4/n/n/-watermarked-original-imahh6wehajppkhc.jpeg?q=70",
     "url": "https://www.flipkart.com/asics-novablast-5-tr-running-shoes-women/p/itm7fe6f02a65f5f?pid=SHOHGFY6TXFMNJVT&lid=LSTSHOHGFY6TXFMNJVTHJBD09&marketplace=FLIPKART&q=asics+novablast&store=osp&srno=s_1_22&otracker=search&otracker1=search&fm=Search&iid=0e8f1f81-fec9-4155-bdb3-c54b6198847d.SHOHGFY6TXFMNJVT.SEARCH&ppt=sp&ppn=sp&ssid=fsbkgx8hn40000001784358266113&qH=bc45cc7e559e6687&ov_redirect=true",
     "site": "flipkart",
-    "currentPrice": 11199,
+    "currentPrice": 11199.0,
     "currency": "₹",
     "onSale": true,
-    "lastChecked": "2026-09-06T00:19:25+00:00",
+    "lastChecked": "2026-09-06T13:13:27+00:00",
     "history": [
       {
         "t": "2026-07-18T11:10:34+00:00",
@@ -34,18 +34,17 @@
         "price": 11199
       }
     ],
-    "alertedAt_matches": null,
-    "lastAttempt": "2026-09-06T09:46:10+00:00"
+    "alertedAt_matches": null
   },
   "673e55f48713": {
     "title": "Asics NOVABLAST 5 ATC Outdoors For Men (Grey , 7)",
     "image": "https://rukmini1.flixcart.com/image/1500/1500/xif0q/shoe/w/b/1/6-1011c185-020-6-0-asics-piedmont-grey-pure-silver-watermarked-original-imahhzqntq3uhqcw.jpeg?q=70",
     "url": "https://www.flipkart.com/asics-novablast-5-atc-outdoors-men/p/itmbf968d65879da?pid=SHOHHZQNVDKZS7JS&lid=LSTSHOHHZQNVDKZS7JSS59JL5&marketplace=FLIPKART&q=asics+novablast&store=osp&srno=s_1_10&otracker=search&otracker1=search&fm=Search&iid=0e8f1f81-fec9-4155-bdb3-c54b6198847d.SHOHHZQNVDKZS7JS.SEARCH&ppt=sp&ppn=sp&qH=bc45cc7e559e6687&ov_redirect=true",
     "site": "flipkart",
-    "currentPrice": 11199,
+    "currentPrice": 11199.0,
     "currency": "₹",
     "onSale": true,
-    "lastChecked": "2026-09-06T00:19:28+00:00",
+    "lastChecked": "2026-09-06T13:13:30+00:00",
     "history": [
       {
         "t": "2026-07-18T11:10:38+00:00",
@@ -80,7 +79,6 @@
         "price": 11199
       }
     ],
-    "alertedAt_matches": null,
-    "lastAttempt": "2026-09-06T09:46:43+00:00"
+    "alertedAt_matches": null
   }
 }
