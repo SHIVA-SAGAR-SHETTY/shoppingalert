@@ -7,7 +7,7 @@
     "currentPrice": 11199.0,
     "currency": "₹",
     "onSale": true,
-    "lastChecked": "2026-10-05T16:29:01+00:00",
+    "lastChecked": "2026-10-05T22:57:23+00:00",
     "history": [
       {
         "t": "2026-07-18T11:10:34+00:00",
@@ -79,6 +79,7 @@
         "price": 11199
       }
     ],
-    "alertedAt_matches": null
+    "alertedAt_matches": null,
+    "lastAttempt": "2026-10-05T22:57:29+00:00"
   }
 }
