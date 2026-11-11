@@ -6,8 +6,8 @@
     "site": "flipkart",
     "currentPrice": 11199.0,
     "currency": "₹",
-    "onSale": false,
-    "lastChecked": "2026-11-10T21:29:42+00:00",
+    "onSale": true,
+    "lastChecked": "2026-11-11T01:31:25+00:00",
     "history": [
       {
         "t": "2026-07-18T11:10:34+00:00",
@@ -44,7 +44,7 @@
     "currentPrice": 11199.0,
     "currency": "₹",
     "onSale": true,
-    "lastChecked": "2026-11-10T21:29:45+00:00",
+    "lastChecked": "2026-11-11T01:31:29+00:00",
     "history": [
       {
         "t": "2026-07-18T11:10:38+00:00",
